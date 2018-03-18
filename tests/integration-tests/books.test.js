@@ -14,67 +14,58 @@ describe("routes/books", () => {
       console.log("connected to test DB successfully");
     });
 
-    Book.deleteMany().exec();
+    await Book.deleteMany().exec();
   });
 
   it("GET /books should return status of 200 and all books in the test DB", async () => {
     const expectedBooks = await Book.find({});
 
-    return request(app)
-      .get("/books")
+    const response = await request(app).get("/books");
 
-      .then(response => {
-        expect(response.status).toEqual(200);
-        expect(response.header["content-type"]).toContain("application/json");
-        expect(response.body).toEqual(expectedBooks);
-      });
+    expect(response.status).toEqual(200);
+    expect(response.header["content-type"]).toContain("application/json");
+    expect(response.body).toEqual(expectedBooks);
   });
 
-  it("POST /books should create book", () => {
+  it("POST /books should create book", async () => {
     const TITLE = "harry potter";
     const SUMMARY = "harry survives";
 
-    return request(app)
+    const response = await request(app)
       .post("/books")
-      .send({ title: TITLE, summary: SUMMARY })
+      .send({ title: TITLE, summary: SUMMARY });
 
-      .then(response => {
-        expect(response.status).toEqual(200);
-        expect(response.header["content-type"]).toContain("application/json");
-        expect(response.body.message).toEqual("book created");
-        expect(response.body.book.title).toEqual(TITLE);
-        expect(response.body.book.summary).toEqual(SUMMARY);
-      });
+    expect(response.status).toEqual(200);
+    expect(response.header["content-type"]).toContain("application/json");
+    expect(response.body.message).toEqual("book created");
+    expect(response.body.book.title).toEqual(TITLE);
+    expect(response.body.book.summary).toEqual(SUMMARY);
   });
 
-  it("PUT /books/:id should update book", done => {
+  it("PUT /books/:id should update book", async () => {
     const TITLE = "harry potter";
     const NEW_TITLE = `new ${TITLE}`;
     const SUMMARY = "harry survives";
 
     const book = new Book({ title: TITLE, summary: SUMMARY });
 
-    book.save(err => {
-      if (err) throw err;
-      request(app)
+    await book.save();
+    const response = await request(app)
         .put(`/books/${book.id}`)
         .send({ title: NEW_TITLE, summary: SUMMARY })
 
-        .then(response => {
           expect(response.status).toEqual(200);
           expect(response.header["content-type"]).toContain("application/json");
           expect(response.body.message).toEqual("book updated");
           expect(response.body.book.title).toEqual(NEW_TITLE);
           expect(response.body.book.summary).toEqual(SUMMARY);
-        });
+    
     });
-    done();
     // false positive. passing even though the assertion fails
   });
 
-  afterAll(done => {
-    Book.deleteMany().exec();
-    db.close();
+  afterAll(async () => {
+    await Book.deleteMany().exec();
+    await db.close();
     done();
   });
-});
